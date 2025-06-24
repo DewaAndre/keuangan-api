@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: keuangan-api
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_KEY
+        value: base64:isiAppKeyLaravelKamu
+      - key: APP_DEBUG
+        value: false
+      - key: DB_CONNECTION
+        value: mysql
+      - key: DB_HOST
+        value: 127.0.0.1
+      - key: DB_PORT
+        value: 3306
+      - key: DB_DATABASE
+        value: keuangan
+      - key: DB_USERNAME
+        value: root
+      - key: DB_PASSWORD
+        value: passwordmu
