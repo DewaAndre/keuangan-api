@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Pemasukan;
 use App\Models\Pengeluaran;
+use App\Models\Hutang;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -69,4 +70,71 @@ class ApiController extends Controller
 
         return response()->json(['message' => 'Pengeluaran berhasil ditambahkan.']);
     }
+
+    public function getAllUsers()
+    {
+        return response()->json([
+            'status' => 'success',
+            'data' => User::all()->makeHidden(['password', 'remember_token'])
+        ]);
+    }
+
+    public function tambahHutang(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id_user',
+            'jumlah' => 'required|numeric|min:1',
+            'keterangan' => 'nullable|string'
+        ]);
+
+        $user = User::where('id_user', $request->user_id)->first();
+
+        if ($user->saldo < $request->jumlah) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Saldo tidak cukup untuk melakukan hutang.'
+            ], 400);
+        }
+
+        $user->saldo -= $request->jumlah;
+        $user->save();
+
+        $hutang = Hutang::create([
+            'user_id' => $request->user_id,
+            'jumlah' => $request->jumlah,
+            'keterangan' => $request->keterangan
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Hutang berhasil ditambahkan dan saldo dikurangi.',
+            'data' => $hutang,
+            'sisa_saldo' => $user->saldo
+        ]);
+    }
+
+    public function getKeuangan()
+    {
+        $users = User::all();
+
+        $data = $users->map(function ($user) {
+            $totalPemasukan = Pemasukan::where('user_id', $user->id_user)->sum('jumlah');
+            $totalPengeluaran = Pengeluaran::where('user_id', $user->id_user)->sum('jumlah');
+            $totalHutang = Hutang::where('user_id', $user->id_user)->sum('jumlah');
+
+            return [
+                'id_user'     => $user->id_user,
+                'username'    => $user->username,
+                'pemasukan'   => $totalPemasukan,
+                'pengeluaran' => $totalPengeluaran,
+                'hutang'      => $totalHutang,
+            ];
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $data
+        ]);
+    }
+
 }
