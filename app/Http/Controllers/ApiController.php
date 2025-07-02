@@ -34,12 +34,12 @@ class ApiController extends Controller
     public function tambahPemasukan(Request $request)
     {
         $request->validate([
-            'user_id' => 'required|exists:users,id_user',
+            'id_user' => 'required|exists:users,id_user',
             'jumlah' => 'required|numeric',
             'keterangan' => 'nullable|string',
         ]);
 
-        $user = User::findOrFail($request->user_id);
+        $user = User::findOrFail($request->id_user);
 
         $user->pemasukan()->create([
             'jumlah' => $request->jumlah,
@@ -71,23 +71,38 @@ class ApiController extends Controller
         return response()->json(['message' => 'Pengeluaran berhasil ditambahkan.']);
     }
 
-    public function getAllUsers()
+    public function getUsers()
     {
+        $users = \App\Models\User::select([
+            'id_user',
+            'username',
+            'email',
+            'password',
+            'no_hp',
+            'tanggal_lahir',
+            'saldo',
+            'status',
+            'created_at',
+            'updated_at'
+        ])->get();
+
         return response()->json([
             'status' => 'success',
-            'data' => User::all()->makeHidden(['password', 'remember_token'])
+            'data' => $users
         ]);
     }
+
+
 
     public function tambahHutang(Request $request)
     {
         $request->validate([
-            'user_id' => 'required|exists:users,id_user',
+            'id_user' => 'required|exists:users,id_user',
             'jumlah' => 'required|numeric|min:1',
             'keterangan' => 'nullable|string'
         ]);
 
-        $user = User::where('id_user', $request->user_id)->first();
+        $user = User::where('id_user', $request->id_user)->first();
 
         if ($user->saldo < $request->jumlah) {
             return response()->json([
@@ -100,7 +115,7 @@ class ApiController extends Controller
         $user->save();
 
         $hutang = Hutang::create([
-            'user_id' => $request->user_id,
+            'id_user' => $request->id_user, // ✅ ganti user_id ke id_user
             'jumlah' => $request->jumlah,
             'keterangan' => $request->keterangan
         ]);
@@ -113,14 +128,15 @@ class ApiController extends Controller
         ]);
     }
 
+
     public function getKeuangan()
     {
         $users = User::all();
 
         $data = $users->map(function ($user) {
-            $totalPemasukan = Pemasukan::where('user_id', $user->id_user)->sum('jumlah');
-            $totalPengeluaran = Pengeluaran::where('user_id', $user->id_user)->sum('jumlah');
-            $totalHutang = Hutang::where('user_id', $user->id_user)->sum('jumlah');
+            $totalPemasukan = Pemasukan::where('id_user', $user->id_user)->sum('jumlah');
+            $totalPengeluaran = Pengeluaran::where('id_user', $user->id_user)->sum('jumlah');
+            $totalHutang = Hutang::where('id_user', $user->id_user)->sum('jumlah');
 
             return [
                 'id_user'     => $user->id_user,
@@ -136,5 +152,40 @@ class ApiController extends Controller
             'data' => $data
         ]);
     }
+
+    public function login(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required'
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Email atau password salah.'
+            ], 401);
+        }
+
+        // Generate token (bebas, bisa pakai Laravel Sanctum, JWT, atau string acak)
+        $token = bin2hex(random_bytes(40)); // 80 karakter random
+
+        $user->token = $token;
+        $user->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Login berhasil.',
+            'token' => $token,
+            'user' => [
+                'id_user' => $user->id_user,
+                'username' => $user->username,
+                'email' => $user->email
+            ]
+        ]);
+    }
+
 
 }

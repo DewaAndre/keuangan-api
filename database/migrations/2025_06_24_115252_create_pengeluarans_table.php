@@ -15,7 +15,8 @@ return new class extends Migration
     {
         Schema::create('pengeluarans', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('users', 'id_user')->onDelete('cascade');
+            $table->unsignedBigInteger('id_user');
+            $table->foreign('id_user')->references('id_user')->on('users')->onDelete('cascade');
             $table->double('jumlah');
             $table->string('keterangan')->nullable();
             $table->timestamps();

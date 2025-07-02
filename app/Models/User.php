@@ -14,6 +14,7 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
+    // Jika primary key bukan "id"
     protected $primaryKey = 'id_user';
     public $incrementing = true;
     protected $keyType = 'int';
@@ -26,29 +27,38 @@ class User extends Authenticatable
         'no_hp',
         'tanggal_lahir',
         'saldo',
-        'status'
+        'status',
+        'remember_token' // hanya jika digunakan
     ];
 
-    protected $hidden = ['password', 'remember_token'];
+    // Menyembunyikan field sensitif saat response JSON
+    protected $hidden = [
+        'password',
+        'remember_token'
+    ];
 
+    // Konversi otomatis tipe data
     protected $casts = [
         'email_verified_at' => 'datetime',
         'tanggal_lahir' => 'date',
         'saldo' => 'double'
     ];
 
+    // Relasi ke tabel pemasukan
     public function pemasukan()
     {
-        return $this->hasMany(Pemasukan::class, 'user_id', 'id_user');
+        return $this->hasMany(Pemasukan::class, 'id_user', 'id_user');
     }
 
+    // Relasi ke tabel pengeluaran
     public function pengeluaran()
     {
-        return $this->hasMany(Pengeluaran::class, 'user_id', 'id_user');
+        return $this->hasMany(Pengeluaran::class, 'id_user', 'id_user');
     }
 
+    // Relasi ke tabel hutang
     public function hutang()
     {
-        return $this->hasMany(Hutang::class, 'user_id', 'id_user');
+        return $this->hasMany(Hutang::class, 'id_user', 'id_user');
     }
 }

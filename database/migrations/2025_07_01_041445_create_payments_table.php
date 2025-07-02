@@ -13,14 +13,18 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('hutangs', function (Blueprint $table) {
+        Schema::create('payments', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('id_user');
-            $table->foreign('id_user')->references('id_user')->on('users')->onDelete('cascade');
-            $table->double('jumlah');
-            $table->string('keterangan')->nullable();
-            $table->boolean('lunas')->default(false);
+            $table->string('order_id')->unique();
+            $table->string('paket');
+            $table->integer('harga');
+            $table->string('payment_method');
+            $table->string('status')->default('pending');
+            $table->timestamp('paid_at')->nullable();
             $table->timestamps();
+
+            $table->foreign('id_user')->references('id_user')->on('users')->onDelete('cascade');
         });
     }
 
@@ -32,6 +36,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('hutangs');
+        Schema::dropIfExists('payments');
     }
 };

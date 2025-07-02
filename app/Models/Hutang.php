@@ -12,14 +12,14 @@ class Hutang extends Model
     protected $table = 'hutangs';
 
     protected $fillable = [
-        'user_id',
+        'id_user',
         'jumlah',
         'keterangan',
     ];
 
     public function user()
     {
-        return $this->belongsTo(User::class, 'user_id', 'id_user');
+        return $this->belongsTo(User::class, 'id_user', 'id_user');
     }
 
 }

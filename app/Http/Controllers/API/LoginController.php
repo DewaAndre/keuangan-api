@@ -4,11 +4,15 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 
 class LoginController extends Controller
 {
-    public function test(){
+    // Endpoint untuk testing
+    public function test()
+    {
         return response()->json([
             'status' => 'success',
             'data' => null,
@@ -16,49 +20,55 @@ class LoginController extends Controller
             'errors' => null,
         ]);
     }
+
     /**
-     * Handle an authentication attempt.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
+     * Login user dan generate token Sanctum.
      */
     public function login(Request $request)
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required'],
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required'
         ]);
 
-        if (Auth::attempt($credentials)) {
-            $request->session()->regenerate();
+        $user = User::where('email', $request->email)->first();
 
-            return redirect()->intended('dashboard');
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Email atau password salah.'
+            ], 401);
         }
+
+        // Buat token Sanctum
+        $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'status' => 'success',
-            'data' => null,
-            'message' => 'Successfully logged out',
-            'errors' => null,
+            'message' => 'Login berhasil.',
+            'access_token' => $token,
+            'token_type' => 'Bearer',
+            'user' => [
+                'id_user' => $user->id_user,
+                'username' => $user->username,
+                'email' => $user->email
+            ]
         ]);
     }
 
+
     /**
-     * Log the user out of the application.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
+     * Logout user dan hapus token Sanctum yang aktif.
      */
     public function logout(Request $request)
     {
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        // Hapus token aktif (token saat ini)
+        $request->user()->currentAccessToken()->delete();
 
         return response()->json([
             'status' => 'success',
+            'message' => 'Berhasil logout.',
             'data' => null,
-            'message' => 'Successfully logged out',
             'errors' => null,
         ]);
     }
